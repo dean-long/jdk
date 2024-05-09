@@ -486,6 +486,10 @@ const char* nmethod::state() const {
 void nmethod::set_deoptimized_done() {
   ConditionalMutexLocker ml(NMethodState_lock, !NMethodState_lock->owned_by_self(), Mutex::_no_safepoint_check_flag);
   if (_deoptimization_status != deoptimize_done) { // can't go backwards
+#if INCLUDE_WX_NEW
+    auto _wx = WXWriteMark(Thread::current());
+    REQUIRE_THREAD_WX_MODE_WRITE
+#endif
     Atomic::store(&_deoptimization_status, deoptimize_done);
   }
 }
@@ -498,6 +502,10 @@ void nmethod::add_exception_cache_entry(ExceptionCache* new_entry) {
   assert(ExceptionCache_lock->owned_by_self(),"Must hold the ExceptionCache_lock");
   assert(new_entry != nullptr,"Must be non null");
   assert(new_entry->next() == nullptr, "Must be null");
+#if INCLUDE_WX_NEW
+  auto _wx = WXWriteMark(Thread::current());
+  REQUIRE_THREAD_WX_MODE_WRITE
+#endif
 
   for (;;) {
     ExceptionCache *ec = exception_cache();
@@ -545,6 +553,9 @@ void nmethod::clean_exception_cache() {
   // handshake operation.
   ExceptionCache* prev = nullptr;
   ExceptionCache* curr = exception_cache_acquire();
+#if INCLUDE_WX_NEW
+  auto _wx = WXWriteMark(Thread::current());
+#endif
 
   while (curr != nullptr) {
     ExceptionCache* next = curr->next();
@@ -808,6 +819,9 @@ static void clean_if_nmethod_is_unloaded(CallsiteT* callsite, nmethod* from,
   }
   nmethod* nm = cb->as_nmethod();
   if (clean_all || !nm->is_in_use() || nm->is_unloading() || nm->method()->code() != nm) {
+#if INCLUDE_WX_NEW
+    auto _wx = WXWriteMark(Thread::current());
+#endif
     callsite->set_to_clean();
   }
 }
@@ -1139,6 +1153,7 @@ nmethod* nmethod::new_nmethod(const methodHandle& method,
 #endif
 )
 {
+  REQUIRE_THREAD_WX_MODE_WRITE
   assert(debug_info->oop_recorder() == code_buffer->oop_recorder(), "shared OR");
   code_buffer->finalize_oop_references(method);
   // create nmethod
@@ -1720,6 +1735,7 @@ void nmethod::print_nmethod(bool printmethod) {
 
 // Promote one word from an assembly-time handle to a live embedded oop.
 inline void nmethod::initialize_immediate_oop(oop* dest, jobject handle) {
+  REQUIRE_THREAD_WX_MODE_WRITE
   if (handle == nullptr ||
       // As a special case, IC oops are initialized to 1 or -1.
       handle == (jobject) Universe::non_oop_word()) {
@@ -1757,10 +1773,17 @@ void nmethod::copy_values(GrowableArray<Metadata*>* array) {
 }
 
 void nmethod::fix_oop_relocations(address begin, address end, bool initialize_immediates) {
+#if INCLUDE_WX_NEW
+  Thread* current = Thread::current();
+  auto _wx = WXLazyMark(current);
+#endif
   // re-patch all oop-bearing instructions, just in case some oops moved
   RelocIterator iter(this, begin, end);
   while (iter.next()) {
     if (iter.type() == relocInfo::oop_type) {
+#if INCLUDE_WX_NEW
+      auto _wx = WXWriteMark(current);
+#endif
       oop_Relocation* reloc = iter.oop_reloc();
       if (initialize_immediates && reloc->oop_is_immediate()) {
         oop* dest = reloc->oop_addr();
@@ -1841,6 +1864,10 @@ void nmethod::make_deoptimized() {
   ResourceMark rm;
   RelocIterator iter(this, oops_reloc_begin());
 
+#if INCLUDE_WX_NEW
+  auto _wx = WXWriteMark(Thread::current());
+#endif
+
   while (iter.next()) {
 
     switch (iter.type()) {
@@ -1917,6 +1944,10 @@ void nmethod::verify_clean_inline_caches() {
 }
 
 void nmethod::mark_as_maybe_on_stack() {
+#if INCLUDE_WX_NEW
+  auto _wx = WXWriteMark(Thread::current());
+  REQUIRE_THREAD_WX_MODE_WRITE
+#endif
   Atomic::store(&_gc_epoch, CodeCache::gc_epoch());
 }
 
@@ -1938,6 +1969,7 @@ void nmethod::inc_decompile_count() {
 }
 
 bool nmethod::try_transition(signed char new_state_int) {
+  REQUIRE_THREAD_WX_MODE_WRITE
   signed char new_state = new_state_int;
   assert_lock_strong(NMethodState_lock);
   signed char old_state = _state;
@@ -1986,6 +2018,12 @@ bool nmethod::make_not_entrant() {
   // This can be called while the system is already at a safepoint which is ok
   NoSafepointVerifier nsv;
 
+  // If is_unloading() needs write mode, leave it on, otherwise
+  // leave it off until needed.
+#if INCLUDE_WX_NEW
+  auto _wx = WXLazyMark(Thread::current());
+#endif
+
   if (is_unloading()) {
     // If the nmethod is unloading, then it is already not entrant through
     // the nmethod entry barriers. No need to do anything; GC will unload it.
@@ -2009,6 +2047,10 @@ bool nmethod::make_not_entrant() {
       // to do, but return false to indicate this.
       return false;
     }
+
+#if INCLUDE_WX_NEW
+    auto _wx = WXWriteMark(Thread::current());
+#endif
 
     if (is_osr_method()) {
       // This logic is equivalent to the logic below for patching the
@@ -2105,6 +2147,9 @@ void nmethod::unlink() {
 void nmethod::purge(bool unregister_nmethod) {
 
   MutexLocker ml(CodeCache_lock, Mutex::_no_safepoint_check_flag);
+#if INCLUDE_WX_NEW
+  auto _wx = WXWriteMark(Thread::current());
+#endif
 
   // completely deallocate this method
   Events::log_nmethod_flush(Thread::current(), "flushing %s nmethod " INTPTR_FORMAT, is_osr_method() ? "osr" : "", p2i(this));
@@ -2112,6 +2157,8 @@ void nmethod::purge(bool unregister_nmethod) {
                        "/Free CodeCache:" SIZE_FORMAT "Kb",
                        is_osr_method() ? "osr" : "",_compile_id, p2i(this), CodeCache::blob_count(),
                        CodeCache::unallocated_capacity(CodeCache::get_code_blob_type(this))/1024);
+
+  REQUIRE_THREAD_WX_MODE_WRITE
 
   // We need to deallocate any ExceptionCache data.
   // Note that we do not need to grab the nmethod lock for this, it
@@ -2216,6 +2263,9 @@ void nmethod::post_compiled_method_load_event(JvmtiThreadState* state) {
 
 
   if (JvmtiExport::should_post_compiled_method_load()) {
+#if INCLUDE_WX_NEW
+    auto _wx = WXWriteMark(Thread::current());
+#endif
     // Only post unload events if load events are found.
     set_load_reported();
     // If a JavaThread hasn't been passed in, let the Service thread
@@ -2378,11 +2428,16 @@ bool nmethod::is_unloading() {
   state_is_unloading = IsUnloadingBehaviour::is_unloading(this);
   uint8_t new_state = IsUnloadingState::create(state_is_unloading, state_unloading_cycle);
 
+#if INCLUDE_WX_NEW
+  auto _wx = WXWriteMark(Thread::current());
+#endif
+
   // Note that if an nmethod has dead oops, everyone will agree that the
   // nmethod is_unloading. However, the is_cold heuristics can yield
   // different outcomes, so we guard the computed result with a CAS
   // to ensure all threads have a shared view of whether an nmethod
   // is_unloading or not.
+  REQUIRE_THREAD_WX_MODE_WRITE
   uint8_t found_state = Atomic::cmpxchg(&_is_unloading_state, state, new_state, memory_order_relaxed);
 
   if (found_state == state) {
@@ -2445,6 +2500,8 @@ void nmethod::oops_do(OopClosure* f, bool allow_dead) {
 }
 
 void nmethod::follow_nmethod(OopIterateClosure* cl) {
+  REQUIRE_THREAD_WX_MODE_WRITE
+
   // Process oops in the nmethod
   oops_do(cl);
 
@@ -2480,10 +2537,15 @@ bool nmethod::oops_do_try_claim() {
 bool nmethod::oops_do_try_claim_weak_request() {
   assert(SafepointSynchronize::is_at_safepoint(), "only at safepoint");
 
-  if ((_oops_do_mark_link == nullptr) &&
-      (Atomic::replace_if_null(&_oops_do_mark_link, mark_link(this, claim_weak_request_tag)))) {
-    oops_do_log_change("oops_do, mark weak request");
-    return true;
+  if (_oops_do_mark_link == nullptr) {
+#if INCLUDE_WX_NEW
+    auto _wx = WXWriteMark(Thread::current());
+    REQUIRE_THREAD_WX_MODE_WRITE
+#endif
+    if (Atomic::replace_if_null(&_oops_do_mark_link, mark_link(this, claim_weak_request_tag))) {
+      oops_do_log_change("oops_do, mark weak request");
+      return true;
+    }
   }
   return false;
 }
@@ -2629,6 +2691,10 @@ void nmethod::oops_do_marking_epilogue() {
   nmethod* next = _oops_do_mark_nmethods;
   _oops_do_mark_nmethods = nullptr;
   if (next != nullptr) {
+#if INCLUDE_WX_NEW
+    auto _wx = WXWriteMark(Thread::current());
+    REQUIRE_THREAD_WX_MODE_WRITE
+#endif
     nmethod* cur;
     do {
       cur = next;

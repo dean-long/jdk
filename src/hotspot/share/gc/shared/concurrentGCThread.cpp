@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2024, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -29,6 +29,7 @@
 #include "runtime/jniHandles.hpp"
 #include "runtime/mutexLocker.hpp"
 #include "runtime/os.hpp"
+#include "runtime/threadWXSetters.inline.hpp"
 
 ConcurrentGCThread::ConcurrentGCThread() :
     _should_terminate(false),
@@ -45,7 +46,17 @@ void ConcurrentGCThread::run() {
   // Wait for initialization to complete
   wait_init_completed();
 
-  run_service();
+  {
+#if INCLUDE_WX_NEW
+#if 0
+    auto _wx = WXWriteMark(this);
+#endif
+#if 1
+    auto _wx = WXLazyMark(this);
+#endif
+#endif
+    run_service();
+  }
 
   // Signal thread has terminated
   MonitorLocker ml(Terminator_lock);

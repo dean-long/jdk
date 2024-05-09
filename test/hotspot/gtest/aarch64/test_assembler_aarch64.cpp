@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2020, Red Hat Inc. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
@@ -32,6 +32,8 @@
 #include "compiler/disassembler.hpp"
 #include "memory/resourceArea.hpp"
 #include "nativeInst_aarch64.hpp"
+#include "runtime/interfaceSupport.inline.hpp"
+#include "runtime/threadWXSetters.inline.hpp"
 #include "unittest.hpp"
 
 #define __ _masm.
@@ -53,6 +55,12 @@ static void asm_check(const unsigned int *insns, const unsigned int *insns1, siz
 }
 
 TEST_VM(AssemblerAArch64, validate) {
+  JavaThread* THREAD = JavaThread::current();
+  ThreadInVMfromNative invm(THREAD);
+#if INCLUDE_WX_NEW
+  auto _wx = WXWriteMark(THREAD);
+#endif
+
   // Smoke test for assembler
   BufferBlob* b = BufferBlob::create("aarch64Test", 500000);
   CodeBuffer code(b);

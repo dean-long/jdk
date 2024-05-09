@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -28,6 +28,7 @@
 #include "gc/shared/scavengableNMethods.hpp"
 #include "gc/shared/scavengableNMethodsData.hpp"
 #include "runtime/mutexLocker.hpp"
+#include "runtime/threadWXSetters.inline.hpp"
 #include "utilities/debug.hpp"
 
 static ScavengableNMethodsData gc_data(nmethod* nm) {
@@ -134,11 +135,21 @@ void ScavengableNMethods::nmethods_do_and_prune(NMethodToOopClosure* cl) {
 
   debug_only(mark_on_list_nmethods());
 
+#if INCLUDE_WX_NEW
+  Thread* current = Thread::current();
+  auto _wx = WXLazyMark(current);
+#endif
+
   nmethod* prev = nullptr;
   nmethod* cur = _head;
   while (cur != nullptr) {
     ScavengableNMethodsData data = gc_data(cur);
-    debug_only(data.clear_marked());
+#ifdef ASSERT
+#if INCLUDE_WX_NEW
+    auto _wx = WXWriteMark(current);
+#endif
+    data.clear_marked();
+#endif
     assert(data.on_list(), "else shouldn't be on this list");
 
     if (cl != nullptr) {
@@ -216,12 +227,19 @@ void ScavengableNMethods::unlist_nmethod(nmethod* nm, nmethod* prev) {
 #ifndef PRODUCT
 // Temporarily mark nmethods that are claimed to be on the scavenge list.
 void ScavengableNMethods::mark_on_list_nmethods() {
+#if INCLUDE_WX_NEW
+  Thread* current = Thread::current();
+  auto _wx = WXLazyMark(current);
+#endif
   NMethodIterator iter(NMethodIterator::all);
   while(iter.next()) {
     nmethod* nm = iter.method();
     ScavengableNMethodsData data = gc_data(nm);
     assert(data.not_marked(), "clean state");
     if (data.on_list()) {
+#if INCLUDE_WX_NEW
+      auto _wx = WXWriteMark(current);
+#endif
       data.set_marked();
     }
   }

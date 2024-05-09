@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -34,6 +34,7 @@
 #include "runtime/javaThread.hpp"
 #include "runtime/registerMap.hpp"
 #include "runtime/sharedRuntime.hpp"
+#include "runtime/threadWXSetters.inline.hpp"
 #include "utilities/align.hpp"
 #include "utilities/debug.hpp"
 #include "utilities/formatBuffer.hpp"
@@ -119,6 +120,10 @@ public:
   }
 
   void set_value(int value) {
+#if INCLUDE_WX_NEW
+    auto _wx = WXWriteMark(Thread::current());
+#endif
+    REQUIRE_THREAD_WX_MODE_WRITE
     Atomic::release_store(guard_addr(), value);
   }
 

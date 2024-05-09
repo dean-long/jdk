@@ -3011,6 +3011,9 @@ void Compile::Code_Gen() {
   {
     TracePhase tp("output", &timers[_t_output]);
     PhaseOutput output;
+#if INCLUDE_WX_NEW
+    auto _wx = WXWriteMark(Thread::current());
+#endif
     output.Output();
     if (failing())  return;
     output.install();
