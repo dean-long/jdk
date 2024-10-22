@@ -1189,6 +1189,9 @@ void ciEnv::report_failure(const char* reason) {
 // ------------------------------------------------------------------
 // ciEnv::record_method_not_compilable()
 void ciEnv::record_method_not_compilable(const char* reason, bool all_tiers) {
+#if 1
+  guarantee(strcmp(reason,old_method_reason()) != 0, "");
+#endif
   int new_compilable =
     all_tiers ? MethodCompilable_never : MethodCompilable_not_at_tier ;
 

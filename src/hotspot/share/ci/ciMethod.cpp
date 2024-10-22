@@ -51,6 +51,7 @@
 #include "prims/methodHandles.hpp"
 #include "runtime/deoptimization.hpp"
 #include "runtime/handles.inline.hpp"
+#include "runtime/os.hpp"
 #include "utilities/bitMap.inline.hpp"
 #include "utilities/xmlstream.hpp"
 #ifdef COMPILER2
@@ -743,11 +744,22 @@ ciMethod* ciMethod::find_monomorphic_target(ciInstanceKlass* caller,
     return nullptr;
   }
 
+#if 0
+  guarantee(!CURRENT_THREAD_ENV->_in_transform_old, "");
+#endif
   // Redefinition support.
   if (this->is_old() || root_m->is_old() || target->is_old()) {
     CURRENT_THREAD_ENV->record_failure(ciEnv::old_method_reason());
     return nullptr;
   }
+
+  // StressBailout support.
+#if 1
+  if ((os::random() % 100) == 0) {
+    CURRENT_THREAD_ENV->record_failure(ciEnv::old_method_reason());
+    return nullptr;
+  }
+#endif
 
   if (target() == root_m->get_Method()) {
     return root_m;
@@ -824,6 +836,15 @@ ciMethod* ciMethod::resolve_invoke(ciKlass* caller, ciKlass* exact_receiver, boo
     return nullptr;
   }
 
+#if 0
+  guarantee(!CURRENT_THREAD_ENV->_in_transform_old, "");
+#endif
+#if 1
+  if ((os::random() % 100) == 0) {
+    CURRENT_THREAD_ENV->record_failure(ciEnv::old_method_reason());
+    return nullptr;
+  }
+#endif
   ciMethod* result = this;
   if (m != get_Method()) {
     // Redefinition support.
