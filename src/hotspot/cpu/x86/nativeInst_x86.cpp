@@ -367,6 +367,9 @@ void NativeJump::check_verified_entry_alignment(address entry, address verified_
 // In JVMCI, the restriction is enforced by HotSpotFrameContext.enter(...)
 //
 void NativeJump::patch_verified_entry(address entry, address verified_entry, address dest) {
+#if 1
+  ShouldNotCallThis();
+#endif
   // complete jump instruction (to be inserted) is in code_buffer;
   union {
     jlong cb_long;

@@ -1545,6 +1545,15 @@ address SharedRuntime::get_resolved_entry(JavaThread* current, methodHandle call
     // The c2i won't patch in this mode -- see fixup_callers_callsite
     return callee_method->get_c2i_entry();
   }
+#if 0
+  ConditionalMutexLocker ml(NMethodState_lock, !NMethodState_lock->owned_by_self(), Mutex::_no_safepoint_check_flag);
+#endif
+#if 1
+  nmethod* n = callee_method->code();
+  if (n != nullptr) {
+    assert(n->is_in_use(), "!");
+  }
+#endif
   assert(callee_method->verified_code_entry() != nullptr, " Jump to zero!");
   return callee_method->verified_code_entry();
 }

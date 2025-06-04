@@ -1331,6 +1331,13 @@ address Method::make_adapters(const methodHandle& mh, TRAPS) {
 address Method::verified_code_entry() {
   DEBUG_ONLY(NoSafepointVerifier nsv;)
   assert(_from_compiled_entry != nullptr, "must be set");
+#if 1
+  assert(check_code(), "!");
+  nmethod *n = Atomic::load_acquire(&_code);
+  if (n != nullptr) {
+    assert(n->is_in_use(), "!");
+  }
+#endif
   return _from_compiled_entry;
 }
 
