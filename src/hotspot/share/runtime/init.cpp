@@ -216,15 +216,8 @@ jint init_globals2() {
   return JNI_OK;
 }
 
-#if 1
-#include "gc/shared/barrierSetAssembler.hpp"
-#endif
-
 void exit_globals() {
   static bool destructorsCalled = false;
-#if 1
-BarrierSetAssembler::stats();
-#endif
   if (!destructorsCalled) {
     destructorsCalled = true;
     perfMemory_exit();

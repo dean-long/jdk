@@ -175,8 +175,7 @@ LIR_Opr FrameMap::stack_pointer() {
 }
 
 LIR_Opr FrameMap::method_handle_invoke_SP_save_opr() {
-  assert(Rmh_SP_save == FP, "Fix register used for saving SP for MethodHandle calls");
-  return FP_opr;
+  return LIR_OprFact::illegalOpr;
 }
 
 bool FrameMap::validate_frame() {

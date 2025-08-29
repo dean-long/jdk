@@ -8793,26 +8793,11 @@ instruct safePoint_poll(iRegP poll, R12RegI tmp, flagsReg icc) %{
 // Call Java Static Instruction
 instruct CallStaticJavaDirect( method meth ) %{
   match(CallStaticJava);
-  predicate(! ((CallStaticJavaNode*)n)->is_method_handle_invoke());
   effect(USE meth);
 
   ins_cost(CALL_COST);
   format %{ "CALL,static ==> " %}
   ins_encode( SetInstMark, Java_Static_Call( meth ), call_epilog, ClearInstMark );
-  ins_pipe(simple_call);
-%}
-
-// Call Java Static Instruction (method handle version)
-instruct CallStaticJavaHandle( method meth ) %{
-  match(CallStaticJava);
-  predicate(((CallStaticJavaNode*)n)->is_method_handle_invoke());
-  effect(USE meth);
-  // FP is saved by all callees (for interpreter stack correction).
-  // We use it here for a similar purpose, in {preserve,restore}_FP.
-
-  ins_cost(CALL_COST);
-  format %{ "CALL,static/MethodHandle ==> " %}
-  ins_encode( SetInstMark, preserve_SP, Java_Static_Call( meth ), restore_SP, call_epilog, ClearInstMark );
   ins_pipe(simple_call);
 %}
 
