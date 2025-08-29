@@ -1248,23 +1248,6 @@ encode %{
     __ set_inst_mark(mark);
   %}
 
-  enc_class preserve_SP %{
-    // preserve mark
-    address mark = __ inst_mark();
-    DEBUG_ONLY(int off0 = __ offset());
-    // FP is preserved across all calls, even compiled calls.
-    // Use it to preserve SP in places where the callee might change the SP.
-    __ mov(Rmh_SP_save, SP);
-    DEBUG_ONLY(int off1 = __ offset());
-    assert(off1 - off0 == 4, "correct size prediction");
-    // restore mark
-    __ set_inst_mark(mark);
-  %}
-
-  enc_class restore_SP %{
-    __ mov(SP, Rmh_SP_save);
-  %}
-
   enc_class Java_Dynamic_Call (method meth) %{
     Register R8_ic_reg = reg_to_register_object(Matcher::inline_cache_reg_encode());
     assert(R8_ic_reg == Ricklass, "should be");

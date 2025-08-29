@@ -269,16 +269,31 @@ void BarrierSetAssembler::tlab_allocate(MacroAssembler* masm, Register obj,
 }
 
 static volatile uint32_t _patching_epoch = 0;
+#if 1
+static volatile uint32_t _patching_epoch_total = 0;
+static volatile uint32_t _clear_patching_epoch_total = 0;
+#endif
 
 address BarrierSetAssembler::patching_epoch_addr() {
   return (address)&_patching_epoch;
 }
 
+void BarrierSetAssembler::stats() {
+  tty->print_cr("increment_patching_epoch %u", _patching_epoch_total);
+  tty->print_cr("clear_patching_epoch %u", _clear_patching_epoch_total);
+}
+
 void BarrierSetAssembler::increment_patching_epoch() {
+#if 1
+  Atomic::inc(&_patching_epoch_total);
+#endif
   Atomic::inc(&_patching_epoch);
 }
 
 void BarrierSetAssembler::clear_patching_epoch() {
+#if 1
+  Atomic::inc(&_clear_patching_epoch_total);
+#endif
   _patching_epoch = 0;
 }
 

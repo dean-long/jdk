@@ -1302,7 +1302,6 @@ MachNode *Matcher::match_sfpt( SafePointNode *sfpt ) {
   CallNode *call;
   const TypeTuple *domain;
   ciMethod*        method = nullptr;
-  bool             is_method_handle_invoke = false;  // for special kill effects
   if( sfpt->is_Call() ) {
     call = sfpt->as_Call();
     domain = call->tf()->domain();
@@ -1328,13 +1327,8 @@ MachNode *Matcher::match_sfpt( SafePointNode *sfpt ) {
       method = call_java->method();
       mcall_java->_method = method;
       mcall_java->_optimized_virtual = call_java->is_optimized_virtual();
-      is_method_handle_invoke = call_java->is_method_handle_invoke();
-      mcall_java->_method_handle_invoke = is_method_handle_invoke;
       mcall_java->_override_symbolic_info = call_java->override_symbolic_info();
       mcall_java->_arg_escape = call_java->arg_escape();
-      if (is_method_handle_invoke) {
-        C->set_has_method_handle_invokes(true);
-      }
       if( mcall_java->is_MachCallStaticJava() )
         mcall_java->as_MachCallStaticJava()->_name =
          call_java->as_CallStaticJava()->_name;

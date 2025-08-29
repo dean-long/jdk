@@ -130,6 +130,7 @@ public:
   static address patching_epoch_addr();
   static void clear_patching_epoch();
   static void increment_patching_epoch();
+  static void stats();
 
 #ifdef COMPILER2
   OptoReg::Name encode_float_vector_register_size(const Node* node,

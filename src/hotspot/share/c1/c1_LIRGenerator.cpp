@@ -2719,7 +2719,6 @@ void LIRGenerator::do_Invoke(Invoke* x) {
                                   target->is_method_handle_intrinsic() ||
                                   target->is_compiled_lambda_form());
   if (is_method_handle_invoke) {
-    info->set_is_method_handle_invoke(true);
     if(FrameMap::method_handle_invoke_SP_save_opr() != LIR_OprFact::illegalOpr) {
         __ move(FrameMap::stack_pointer(), FrameMap::method_handle_invoke_SP_save_opr());
     }
