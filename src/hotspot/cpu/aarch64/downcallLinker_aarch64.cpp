@@ -310,12 +310,11 @@ void DowncallLinker::StubGenerator::generate() {
 
     // change thread state
     __ mov(tmp1, _thread_in_Java);
-    if (UseSystemMemoryBarrier) {
-      __ lea(tmp2, Address(rthread, JavaThread::thread_state_offset()));
-      __ stlrw(tmp1, tmp2);
-    } else {
-      __ strw(tmp1, Address(rthread, JavaThread::thread_state_offset()));
-      // Force this write out before the read below
+    __ lea(tmp2, Address(rthread, JavaThread::thread_state_offset()));
+    __ stlrw(tmp1, tmp2);
+
+    // Force this write out before the read below
+    if (!UseSystemMemoryBarrier) {
       __ membar(Assembler::LoadLoad | Assembler::LoadStore |
                 Assembler::StoreLoad | Assembler::StoreStore);
     }

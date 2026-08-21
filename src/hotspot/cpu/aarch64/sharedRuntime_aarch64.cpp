@@ -2049,12 +2049,11 @@ nmethod* SharedRuntime::generate_native_wrapper(MacroAssembler* masm,
 
   // change thread state
   __ mov(rscratch1, _thread_in_Java);
-  if (UseSystemMemoryBarrier) {
-    __ lea(rscratch2, Address(rthread, JavaThread::thread_state_offset()));
-    __ stlrw(rscratch1, rscratch2);
-  } else {
-    __ strw(rscratch1, Address(rthread, JavaThread::thread_state_offset()));
-    // Force this write out before the read below
+  __ lea(rscratch2, Address(rthread, JavaThread::thread_state_offset()));
+  __ stlrw(rscratch1, rscratch2);
+
+  // Force this write out before the read below
+  if (!UseSystemMemoryBarrier) {
     __ dmb(Assembler::ISH);
   }
 

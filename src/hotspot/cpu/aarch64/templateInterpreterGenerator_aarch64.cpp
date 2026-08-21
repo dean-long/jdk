@@ -1423,11 +1423,10 @@ address TemplateInterpreterGenerator::generate_native_entry(bool synchronized) {
 
   // change thread state
   __ mov(rscratch1, _thread_in_Java);
-  if (UseSystemMemoryBarrier) { 
-    __ lea(rscratch2, Address(rthread, JavaThread::thread_state_offset()));
-    __ stlrw(rscratch1, rscratch2);
-  } else { 
-    __ strw(rscratch1, Address(rthread, JavaThread::thread_state_offset()));
+  __ lea(rscratch2, Address(rthread, JavaThread::thread_state_offset()));
+  __ stlrw(rscratch1, rscratch2);
+
+  if (!UseSystemMemoryBarrier) {
     // Force this write out before the read below
     __ dmb(Assembler::ISH);
   }
