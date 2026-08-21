@@ -1100,7 +1100,7 @@ void JavaThread::verify_not_published() {
 // pending, when _suspend_flags is non-zero or when we need to process a stack
 // watermark. Also check for pending async exceptions (except unsafe access error).
 void JavaThread::check_special_condition_for_native_trans(JavaThread *thread) {
-  assert(thread->thread_state() == _thread_in_vm, "wrong state");
+  assert(thread->thread_state() == _thread_in_Java, "wrong state");
   assert(!thread->has_last_Java_frame() || thread->frame_anchor()->walkable(), "Unwalkable stack in native->Java transition");
 
   // Enable WXWrite: called directly from interpreter native wrapper.
