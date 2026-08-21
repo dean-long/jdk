@@ -1426,8 +1426,8 @@ address TemplateInterpreterGenerator::generate_native_entry(bool synchronized) {
   __ lea(rscratch2, Address(rthread, JavaThread::thread_state_offset()));
   __ stlrw(rscratch1, rscratch2);
 
+  // Force this write out before the read below
   if (!UseSystemMemoryBarrier) {
-    // Force this write out before the read below
     __ dmb(Assembler::ISH);
   }
 
