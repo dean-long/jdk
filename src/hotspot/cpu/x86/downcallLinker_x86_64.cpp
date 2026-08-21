@@ -310,13 +310,12 @@ void DowncallLinker::StubGenerator::generate() {
     __ block_comment("{ thread native2java");
     __ restore_cpu_control_state_after_jni(rscratch1);
 
-    __ movl(Address(r15_thread, JavaThread::thread_state_offset()), _thread_in_vm);
+    // change thread state
+    __ movl(Address(r15_thread, JavaThread::thread_state_offset()), _thread_in_Java);
 
     // Force this write out before the read below
     if (!UseSystemMemoryBarrier) {
-      __ membar(Assembler::Membar_mask_bits(
-              Assembler::LoadLoad | Assembler::LoadStore |
-              Assembler::StoreLoad | Assembler::StoreStore));
+      __ membar(Assembler::Membar_mask_bits(Assembler::StoreLoad));
     }
 
     __ safepoint_poll(L_safepoint_poll_slow_path, true /* at_return */, false /* in_nmethod */);
@@ -324,9 +323,6 @@ void DowncallLinker::StubGenerator::generate() {
     __ jcc(Assembler::notEqual, L_safepoint_poll_slow_path);
 
     __ bind(L_after_safepoint_poll);
-
-    // change thread state
-    __ movl(Address(r15_thread, JavaThread::thread_state_offset()), _thread_in_Java);
 
     __ block_comment("reguard stack check");
     __ cmpl(Address(r15_thread, JavaThread::stack_guard_state_offset()), StackOverflow::stack_guard_yellow_reserved_disabled);

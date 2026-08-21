@@ -1422,12 +1422,13 @@ address TemplateInterpreterGenerator::generate_native_entry(bool synchronized) {
   __ verify_sve_vector_length();
 
   // change thread state
-  __ mov(rscratch1, _thread_in_vm);
-  __ lea(rscratch2, Address(rthread, JavaThread::thread_state_offset()));
-  __ stlrw(rscratch1, rscratch2);
-
-  // Force this write out before the read below
-  if (!UseSystemMemoryBarrier) {
+  __ mov(rscratch1, _thread_in_Java);
+  if (UseSystemMemoryBarrier) { 
+    __ lea(rscratch2, Address(rthread, JavaThread::thread_state_offset()));
+    __ stlrw(rscratch1, rscratch2);
+  } else { 
+    __ strw(rscratch1, Address(rthread, JavaThread::thread_state_offset()));
+    // Force this write out before the read below
     __ dmb(Assembler::ISH);
   }
 
@@ -1453,11 +1454,6 @@ address TemplateInterpreterGenerator::generate_native_entry(bool synchronized) {
     __ reinit_heapbase();
     __ bind(Continue);
   }
-
-  // change thread state
-  __ mov(rscratch1, _thread_in_Java);
-  __ lea(rscratch2, Address(rthread, JavaThread::thread_state_offset()));
-  __ stlrw(rscratch1, rscratch2);
 
   // Check preemption for Object.wait()
   Label not_preempted;

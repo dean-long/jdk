@@ -2456,13 +2456,12 @@ nmethod* SharedRuntime::generate_native_wrapper(MacroAssembler* masm,
   default       : ShouldNotReachHere();
   }
 
-  __ movl(Address(r15_thread, JavaThread::thread_state_offset()), _thread_in_vm);
+  // change thread state
+  __ movl(Address(r15_thread, JavaThread::thread_state_offset()), _thread_in_Java);
 
   // Force this write out before the read below
   if (!UseSystemMemoryBarrier) {
-    __ membar(Assembler::Membar_mask_bits(
-              Assembler::LoadLoad | Assembler::LoadStore |
-              Assembler::StoreLoad | Assembler::StoreStore));
+    __ membar(Assembler::Membar_mask_bits(Assembler::StoreLoad));
   }
 
   // check for safepoint operation in progress and/or pending suspend requests
@@ -2495,9 +2494,6 @@ nmethod* SharedRuntime::generate_native_wrapper(MacroAssembler* masm,
     restore_native_result(masm, ret_type, stack_slots);
     __ bind(Continue);
   }
-
-  // change thread state
-  __ movl(Address(r15_thread, JavaThread::thread_state_offset()), _thread_in_Java);
 
   if (method->is_object_wait0()) {
     // Check preemption for Object.wait()
