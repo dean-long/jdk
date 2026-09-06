@@ -132,11 +132,17 @@ OptoReg::Name Matcher::warp_incoming_stk_arg( VMReg reg ) {
 //---------------------------compute_old_SP------------------------------------
 OptoReg::Name Compile::compute_old_SP() {
   int fixed    = fixed_slots();
+  assert(fixed == monitor_slots() + extra_slots(), "wrong fixed slot count");
   int preserve = in_preserve_stack_slots();
-  return OptoReg::stack2reg(align_up(fixed + preserve, (int)Matcher::stack_alignment_in_slots()));
+  int align = (int)Matcher::stack_alignment_in_slots();
+  int aligned =  align_up(fixed + preserve, align);
+  if (C->is_method_compilation()) {
+    int padding = aligned - preserve - fixed;
+    _padding_slots = padding; // contributes to new fixed_slots() total
+    assert(fixed_slots() == fixed + padding, "missing padding?");
+  }
+  return OptoReg::stack2reg(aligned);
 }
-
-
 
 #ifdef ASSERT
 void Matcher::verify_new_nodes_only(Node* xroot) {
@@ -191,8 +197,14 @@ RegMask* Matcher::return_values_mask(const TypeFunc* tf) const {
     int current_slot = C->fixed_slots();
     if (C->needs_stack_repair()) {
       current_slot -= VMRegImpl::slots_per_word;
+#if 1
+assert(current_slot == C->stack_increment_slot(), "%d != %d", current_slot, C->stack_increment_slot());
+#endif
     }
     int nm_slot = current_slot - VMRegImpl::slots_per_word;
+#if 1
+assert(nm_slot == C->nm_slot(), "%d != %d", nm_slot, C->nm_slot());
+#endif
     mask[--cnt].clear();
     mask[cnt].insert(OptoReg::stack2reg(nm_slot));
   }

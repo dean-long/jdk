@@ -316,11 +316,18 @@ class Compile : public Phase {
   StubId                   _stub_id;               // unique id for stub or NO_STUBID
   address               _stub_entry_point;      // Compile code entry for generated stub, or null
 
+  // Fixed slots
+  int                   _extra_slots;
+  int                   _padding_slots;
+  int                   _monitor_slots;
+  int                   _orig_pc_slot;
+  int                   _nm_slot;
+  int                   _stack_increment_slot;
+
   // Control of this compilation.
   int                   _max_inline_size;       // Max inline size for this compilation
   int                   _freq_inline_size;      // Max hot method inline size for this compilation
-  int                   _fixed_slots;           // count of frame slots not allocated by the register
-                                                // allocator i.e. locks, original deopt pc, etc.
+
   uintx                 _max_node_limit;        // Max unique node count during a single compilation.
   uint             _node_count_inlining_cutoff; // Number of nodes in the graph above which inlining is denied
 
@@ -615,9 +622,21 @@ public:
   address           stub_entry_point() const    { return _stub_entry_point; }
   void          set_stub_entry_point(address z) { _stub_entry_point = z; }
 
+  // Fixed slots
+  // count of frame slots not allocated by the register
+  // allocator i.e. locks, original deopt pc, etc.
+  int               fixed_slots() const          { int fixed_slots = _monitor_slots + _extra_slots + _padding_slots;
+                                                   assert(fixed_slots >= 0, ""); return fixed_slots; }
+  int               padding_slots() const        { return _padding_slots; }
+  int               monitor_slots() const        { return _monitor_slots; }
+  void          set_monitor_slots(int n)         { _monitor_slots = n; }
+  int               extra_slots() const          { return _extra_slots; }
+  void          set_extra_slots(int n)           { _extra_slots = n; }
+  int               orig_pc_slot() const         { return fixed_slots() - _orig_pc_slot; }
+  int               nm_slot() const              { return fixed_slots() - _nm_slot; }
+  int               stack_increment_slot() const { return fixed_slots() - _stack_increment_slot; }
+
   // Control of this compilation.
-  int               fixed_slots() const         { assert(_fixed_slots >= 0, "");         return _fixed_slots; }
-  void          set_fixed_slots(int n)          { _fixed_slots = n; }
   void          set_inlining_progress(bool z)   { _inlining_progress = z; }
   bool              inlining_progress() const   { return _inlining_progress; }
   void          set_inlining_incrementally(bool z) { _inlining_incrementally = z; }
@@ -1206,8 +1225,8 @@ public:
   bool              has_java_calls() const      { return _java_calls > 0; }
   int               java_calls() const          { return _java_calls; }
   int               inner_loops() const         { return _inner_loops; }
-  Matcher*          matcher()                   { return _matcher; }
-  PhaseRegAlloc*    regalloc()                  { return _regalloc; }
+  Matcher*          matcher() const             { return _matcher; }
+  PhaseRegAlloc*    regalloc() const            { return _regalloc; }
   RegMask&          FIRST_STACK_mask()          { return _FIRST_STACK_mask; }
   ResourceArea*     regmask_arena()             { return &_regmask_arena; }
   Arena*            indexSet_arena()            { return _indexSet_arena; }

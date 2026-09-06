@@ -2429,7 +2429,7 @@ void PhaseChaitin::dump_frame() const {
   }
 
   // Incoming argument area dump
-  OptoReg::Name begin_in_arg = OptoReg::add(_matcher._old_SP,C->out_preserve_stack_slots());
+  OptoReg::Name begin_in_arg = OptoReg::add(_matcher._old_SP, C->out_preserve_stack_slots());
   while( reg > begin_in_arg ) {
     reg = OptoReg::add(reg, -1);
     tty->print("#r%3.3d %s+%2d: ",reg,fp,reg2offset_unchecked(reg));
@@ -2468,6 +2468,7 @@ void PhaseChaitin::dump_frame() const {
   int current_slot = fixed_slots;
   int stack_increment_slot = -1;
   int nm_slot = -1;
+  int orig_pc_slot = -1;
 
   auto next_slot = [&]() {
     current_slot -= VMRegImpl::slots_per_word;
@@ -2476,11 +2477,22 @@ void PhaseChaitin::dump_frame() const {
 
   if (C->needs_stack_repair()) {
     stack_increment_slot = next_slot();
+#if 1
+assert(C->stack_increment_slot() == stack_increment_slot, "wrong slot");
+#endif
   }
   if (C->needs_nm_slot()) {
     nm_slot = next_slot();
+#if 1
+assert(C->nm_slot() == nm_slot, "wrong slot");
+#endif
   }
-  int orig_pc_slot = next_slot();
+  if (C->is_method_compilation()) {
+    orig_pc_slot = next_slot();
+#if 1
+    assert(C->orig_pc_slot() == orig_pc_slot, "wrong slot");
+#endif
+  }
 
   while (OptoReg::is_stack(reg)) {
     int stack_slot = (int)OptoReg::reg2stack(reg);
@@ -2494,7 +2506,7 @@ void PhaseChaitin::dump_frame() const {
       } else {
         tty->print_cr("in_preserve");
       }
-    } else if (stack_slot < fixed_slots) {
+    } else if (stack_slot < fixed_slots && stack_slot >= C->monitor_slots()) {
       tty->print("Fixed slot %d", OptoReg::reg2stack(reg));
       if (stack_slot == stack_increment_slot) {
         tty->print_cr(" (stack increment)");
@@ -2502,11 +2514,14 @@ void PhaseChaitin::dump_frame() const {
         tty->print_cr(" (null marker)");
       } else if (stack_slot == orig_pc_slot) {
         tty->print_cr(" (original deopt pc)");
+      } else if (stack_slot < C->monitor_slots() + C->padding_slots()) {
+        tty->print_cr(" (pad2, stack alignment)");
       } else {
         tty->cr();
       }
     } else {
-      tty->print_cr("pad2, stack alignment");
+      assert(stack_slot < C->monitor_slots(), "unknown slot %d", stack_slot);
+      tty->print_cr("monitor slot");
     }
     reg = OptoReg::add(reg, -1);
   }

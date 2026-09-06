@@ -60,7 +60,7 @@ uint BoxLockNode::hash() const {
   if (EliminateNestedLocks) {
     return NO_HASH; // Each locked region has own BoxLock node
   }
-  return Node::hash() + _slot + (is_eliminated() ? Compile::current()->fixed_slots() : 0);
+  return Node::hash() + _slot + (is_eliminated() ? Compile::current()->monitor_slots() : 0);
 }
 
 bool BoxLockNode::cmp( const Node &n ) const {

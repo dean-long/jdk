@@ -910,33 +910,52 @@ Compile::Compile(ciEnv* ci_env, ciMethod* target, int osr_bci,
   }
 
   // Now that we know the size of all the monitors we can add fixed slots:
+  // N: extra slots
+  // M: monitors
   // [...]
-  // rsp+80: saved fp register
-  // rsp+76: Fixed slot 7
-  // rsp+72: Fixed slot 6 (stack increment)
-  // rsp+68: Fixed slot 5
-  // rsp+64: Fixed slot 4 (null marker)
-  // rsp+60: Fixed slot 3
-  // rsp+56: Fixed slot 2 (original deopt pc)
-  // rsp+52: Fixed slot 1
-  // rsp+48: Fixed slot 0 (monitors)
+  // rsp+96: _old_SP (aligned)
+  // rsp+92: last slot of in_preserve_stack_slots()
+  // rsp+80: first slot of in_preserve_stack_slots()
+  // no padding allowed here, last slot of fixed_slots() is below
+  // rsp+76: Fixed slot M+N-1
+  // rsp+72: Fixed slot M+N-2 (optional stack increment)
+  // rsp+68: Fixed slot M+N-3
+  // rsp+64: Fixed slot M+N-4 (optional null marker)
+  // rsp+60: Fixed slot M+N-5
+  // rsp+56: Fixed slot M+N-6 (original deopt pc)
+  // _old_SP alignment padding added here if needed
+  // rsp+52: Fixed slot M-1
+  // rsp+48: Fixed slot M-2 (monitors)
   // rsp+44: spill
   // [...]
 
-  // One extra slot for the original deopt pc.
-  int next_slot = fixed_slots();
-  next_slot += VMRegImpl::slots_per_word;
+  // Compute additional fixed slots in reverse order, with
+  // offsets relative to the final, aligned fixed_slots()
+  // count.
+
+  int next_slot = 0;
 
   // One extra slot for the special stack increment value.
+  // This slot must be last, so CPU-specific code can find it
+  // at the end the frame.
   if (needs_stack_repair()) {
     next_slot += VMRegImpl::slots_per_word;
+    _stack_increment_slot = next_slot;
   }
 
   // One extra slot to hold the null marker at scalarized returns.
   if (needs_nm_slot()) {
     next_slot += VMRegImpl::slots_per_word;
+    _nm_slot = next_slot;
   }
-  set_fixed_slots(next_slot);
+
+  // One extra slot for the original deopt pc.
+  next_slot += VMRegImpl::slots_per_word;
+  _orig_pc_slot = next_slot;
+
+  // Unaligned extra slot count, compute_old_SP() will align and
+  // compute total fixed slots.
+  set_extra_slots(next_slot);
 
   // Compute when to use implicit null checks. Used by matching trap based
   // nodes and NullCheck optimization.
@@ -1123,7 +1142,13 @@ void Compile::Init(bool aliasing) {
   env()->set_debug_info(new DebugInformationRecorder(env()->oop_recorder()));
   env()->set_dependencies(new Dependencies(env()));
 
-  _fixed_slots = 0;
+  _monitor_slots = 0;
+  _padding_slots = 0;
+  _extra_slots = 0;
+  _orig_pc_slot = -1;
+  _nm_slot = -1;
+  _stack_increment_slot = -1;
+
   set_has_split_ifs(false);
   set_has_loops(false); // first approximation
   set_has_stringbuilder(false);

@@ -4047,7 +4047,7 @@ int GraphKit::next_monitor() {
   int current = jvms()->monitor_depth()* C->sync_stack_slots();
   int next = current + C->sync_stack_slots();
   // Keep the toplevel high water mark current:
-  if (C->fixed_slots() < next)  C->set_fixed_slots(next);
+  if (C->monitor_slots() < next)  C->set_monitor_slots(next);
   return current;
 }
 

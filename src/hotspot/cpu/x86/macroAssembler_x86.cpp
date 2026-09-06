@@ -6496,6 +6496,13 @@ void MacroAssembler::remove_frame(int initial_framesize, bool needs_stack_repair
     // The stack increment resides just below the saved rbp
     addq(rsp, Address(rsp, initial_framesize - wordSize));
     pop(rbp);
+#if 1
+{
+  C2_MacroAssembler* c2_masm = (C2_MacroAssembler*)this;
+  Compile* C = Compile::current();
+  assert(initial_framesize - wordSize == c2_masm->stack_increment_offset(C), "!");
+}
+#endif
   } else {
     if (initial_framesize > 0) {
       addq(rsp, initial_framesize);

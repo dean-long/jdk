@@ -134,6 +134,9 @@ void C2_MacroAssembler::verified_entry(Compile* C, int sp_inc) {
   if (C->needs_stack_repair()) {
     // Save stack increment just below the saved rbp (also account for fixed framesize and rbp)
     assert((sp_inc & (StackAlignmentInBytes-1)) == 0, "stack increment not aligned");
+#if 1
+assert(framesize - wordSize == stack_increment_offset(C), "!");
+#endif
     movptr(Address(rsp, framesize - wordSize), sp_inc + framesize);
   }
 }

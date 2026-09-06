@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2025, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,11 +23,8 @@
  */
 
 #include "asm/assembler.hpp"
-#include "asm/codeBuffer.hpp"
 #include "memory/allocation.hpp"
-#include "opto/c2_MacroAssembler.hpp"
 #include "opto/compile.hpp"
-#include "opto/output.hpp"
 #include "utilities/growableArray.hpp"
 #include "utilities/tuple.hpp"
 
@@ -36,6 +33,8 @@
 
 template <class... Ts>
 class C2GeneralStub;
+
+class C2_MacroAssembler;
 
 class C2CodeStub : public ArenaObj {
 private:

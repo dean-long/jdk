@@ -1377,11 +1377,21 @@ void PhaseOutput::estimate_buffer_size(int& const_req) {
     int current_slot = C->fixed_slots();
     if (C->needs_stack_repair()) {
       current_slot -= VMRegImpl::slots_per_word;
+#if 1
+assert(current_slot == C->stack_increment_slot(), "wrong slot");
+#endif
     }
     if (C->needs_nm_slot()) {
       current_slot -= VMRegImpl::slots_per_word;
+#if 1
+assert(current_slot == C->nm_slot(), "wrong slot");
+#endif
     }
-    int orig_pc_slot = current_slot - VMRegImpl::slots_per_word;
+    current_slot -= VMRegImpl::slots_per_word;
+    int orig_pc_slot = current_slot;
+#if 1
+assert(orig_pc_slot == C->orig_pc_slot(), "wrong slot");
+#endif
     _orig_pc_slot_offset_in_bytes = C->regalloc()->reg2offset(OptoReg::stack2reg(orig_pc_slot));
   }
 
@@ -3371,6 +3381,7 @@ void PhaseOutput::install_code(ciMethod*         target,
     }
   }
 }
+
 void PhaseOutput::install_stub(const char* stub_name) {
   // Entry point will be accessed using stub_entry_point();
   if (code_buffer() == nullptr) {
