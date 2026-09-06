@@ -973,7 +973,7 @@ int Compile::preserved_local_tlab_top_slot() const {
     slot -= VMRegImpl::slots_per_word;
   }
   slot -= 2 * VMRegImpl::slots_per_word;
-  assert(slot == preserved_local_tlab_top_slot(), "!");
+  assert(slot == _preserved_local_tlab_top_slot, "!");
   return slot;
 }
 
